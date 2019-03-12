@@ -1,10 +1,16 @@
-# cloudkms
+package cloudkms_test
 
-cloud kms signer
+import (
+	"context"
+	"crypto/rand"
+	"crypto/x509"
+	"log"
 
-example:
+	kms "cloud.google.com/go/kms/apiv1"
+	"github.com/atotto/cloudkms"
+)
 
-```go
+func Example() {
 	ctx := context.Background()
 
 	client, err := kms.NewKeyManagementClient(ctx)
@@ -22,4 +28,4 @@ example:
 	}
 
 	x509.CreateCertificate(rand.Reader, rootCa, rootCa, signer.Public(), signer)
-```
+}
