@@ -18,8 +18,23 @@ example:
 	}
 
 	rootCa := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
 		// TODO: fill
 	}
 
-	x509.CreateCertificate(rand.Reader, rootCa, rootCa, signer.Public(), signer)
+	data, _ := x509.CreateCertificate(rand.Reader, rootCa, rootCa, signer.Public(), signer)
+	cert, _ := x509.ParseCertificate(data)
+
+	// Sign
+	msg := "hello, world"
+	hash := sha256.Sum256([]byte(msg))
+	signature, err := signer.Sign(rand.Reader, hash[:], crypto.SHA256)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Verify Signature
+	if err := cert.CheckSignature(cert.SignatureAlgorithm, []byte(msg), signature); err != nil {
+		log.Fatal(err)
+	}
 ```
