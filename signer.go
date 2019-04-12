@@ -13,6 +13,7 @@ import (
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
 
+// Signer implements crypto.Signer interface.
 type Signer struct {
 	keyPath     string
 	client      *kms.KeyManagementClient
@@ -51,6 +52,20 @@ func NewSigner(client *kms.KeyManagementClient, keyPath string) (*Signer, error)
 
 func (s *Signer) Public() crypto.PublicKey {
 	return s.pubKey
+}
+
+func (s *Signer) HashFunc() crypto.Hash {
+	switch s.algorithm {
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
+		kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
+		return crypto.SHA256
+	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
+		return crypto.SHA384
+	default:
+		return 0
+	}
 }
 
 func (s *Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {

@@ -2,10 +2,9 @@ package cloudkms_test
 
 import (
 	"context"
-	"crypto"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -36,8 +35,10 @@ func Example() {
 
 	// Sign
 	msg := "hello, world"
-	hash := sha256.Sum256([]byte(msg))
-	signature, err := signer.Sign(rand.Reader, hash[:], crypto.SHA256)
+	h := signer.HashFunc().New()
+	h.Write([]byte(msg))
+	digest := h.Sum(nil)
+	signature, err := signer.Sign(rand.Reader, digest, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,4 +47,6 @@ func Example() {
 	if err := cert.CheckSignature(cert.SignatureAlgorithm, []byte(msg), signature); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("OK")
 }
