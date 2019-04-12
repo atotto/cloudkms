@@ -27,8 +27,10 @@ example:
 
 	// Sign
 	msg := "hello, world"
-	hash := sha256.Sum256([]byte(msg))
-	signature, err := signer.Sign(rand.Reader, hash[:], crypto.SHA256)
+	h := signer.HashFunc().New()
+	h.Write([]byte(msg))
+	digest := h.Sum(nil)
+	signature, err := signer.Sign(rand.Reader, digest, crypto.SHA256)
 	if err != nil {
 		log.Fatal(err)
 	}
