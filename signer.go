@@ -59,10 +59,25 @@ func (s *Signer) HashFunc() crypto.Hash {
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
-		kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
+		kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
+		kmspb.CryptoKeyVersion_EC_SIGN_SECP256K1_SHA256:
 		return crypto.SHA256
 	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
 		return crypto.SHA384
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
+		return crypto.SHA512
+	case kmspb.CryptoKeyVersion_EC_SIGN_ED25519,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_2048,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_3072,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_4096,
+		kmspb.CryptoKeyVersion_PQ_SIGN_ML_DSA_65,
+		kmspb.CryptoKeyVersion_PQ_SIGN_SLH_DSA_SHA2_128S:
+		// These algorithms handle hashing internally or use raw data; no pre-hashing required.
+		return crypto.Hash(0)
 	default:
 		return 0
 	}
@@ -72,13 +87,35 @@ func (s *Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (si
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(context.Background(), s.signTimeout)
 
+	// Algorithms that use raw data (no pre-hashing).
+	switch s.algorithm {
+	case kmspb.CryptoKeyVersion_EC_SIGN_ED25519,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_2048,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_3072,
+		kmspb.CryptoKeyVersion_RSA_SIGN_RAW_PKCS1_4096,
+		kmspb.CryptoKeyVersion_PQ_SIGN_ML_DSA_65,
+		kmspb.CryptoKeyVersion_PQ_SIGN_SLH_DSA_SHA2_128S:
+		res, err := s.client.AsymmetricSign(ctx, &kmspb.AsymmetricSignRequest{
+			Name: s.keyPath,
+			Data: digest,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign: %s", err)
+		}
+		return res.GetSignature(), nil
+	}
+
 	var kmsDigest *kmspb.Digest
 
 	switch s.algorithm {
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
-		kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
+		kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
+		kmspb.CryptoKeyVersion_EC_SIGN_SECP256K1_SHA256:
 		kmsDigest = &kmspb.Digest{
 			Digest: &kmspb.Digest_Sha256{
 				Sha256: digest,
@@ -88,6 +125,13 @@ func (s *Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (si
 		kmsDigest = &kmspb.Digest{
 			Digest: &kmspb.Digest_Sha384{
 				Sha384: digest,
+			},
+		}
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
+		kmsDigest = &kmspb.Digest{
+			Digest: &kmspb.Digest_Sha512{
+				Sha512: digest,
 			},
 		}
 	default:
