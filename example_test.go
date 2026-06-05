@@ -34,17 +34,23 @@ func Example() {
 	cert, _ := x509.ParseCertificate(data)
 
 	// Sign
-	msg := "hello, world"
-	h := signer.HashFunc().New()
-	h.Write([]byte(msg))
-	digest := h.Sum(nil)
-	signature, err := signer.Sign(rand.Reader, digest, nil)
+	msg := []byte("hello, world")
+	var input []byte
+	if h := signer.HashFunc(); h != 0 {
+		hh := h.New()
+		hh.Write(msg)
+		input = hh.Sum(nil)
+	} else {
+		// Algorithm handles hashing internally (e.g. Ed25519); pass raw message.
+		input = msg
+	}
+	signature, err := signer.Sign(rand.Reader, input, signer.HashFunc())
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Verify Signature
-	if err := cert.CheckSignature(cert.SignatureAlgorithm, []byte(msg), signature); err != nil {
+	if err := cert.CheckSignature(cert.SignatureAlgorithm, msg, signature); err != nil {
 		log.Fatal(err)
 	}
 
