@@ -2,10 +2,7 @@ module github.com/atotto/cloudkms
 
 go 1.24.0
 
-require (
-	cloud.google.com/go/kms v1.22.0
-	google.golang.org/genproto v0.0.0-20250908214217-97024824d090
-)
+require cloud.google.com/go/kms v1.22.0
 
 require (
 	cloud.google.com/go v0.122.0 // indirect
@@ -36,6 +33,7 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	google.golang.org/api v0.249.0 // indirect
+	google.golang.org/genproto v0.0.0-20250908214217-97024824d090 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250908214217-97024824d090 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
 	google.golang.org/grpc v1.75.0 // indirect
