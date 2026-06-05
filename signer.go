@@ -11,12 +11,19 @@ import (
 
 	kms "cloud.google.com/go/kms/apiv1"
 	kmspb "cloud.google.com/go/kms/apiv1/kmspb"
+	gax "github.com/googleapis/gax-go/v2"
 )
+
+// kmsClient is the subset of kms.KeyManagementClient used by Signer.
+type kmsClient interface {
+	GetPublicKey(ctx context.Context, req *kmspb.GetPublicKeyRequest, opts ...gax.CallOption) (*kmspb.PublicKey, error)
+	AsymmetricSign(ctx context.Context, req *kmspb.AsymmetricSignRequest, opts ...gax.CallOption) (*kmspb.AsymmetricSignResponse, error)
+}
 
 // Signer implements crypto.Signer interface.
 type Signer struct {
 	keyPath     string
-	client      *kms.KeyManagementClient
+	client      kmsClient
 	signTimeout time.Duration
 
 	algorithm kmspb.CryptoKeyVersion_CryptoKeyVersionAlgorithm
@@ -25,6 +32,10 @@ type Signer struct {
 }
 
 func NewSigner(client *kms.KeyManagementClient, keyPath string) (*Signer, error) {
+	return newSigner(client, keyPath)
+}
+
+func newSigner(client kmsClient, keyPath string) (*Signer, error) {
 	ctx := context.Background()
 	ctx, _ = context.WithTimeout(ctx, 10*time.Second)
 
